@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TractorPlan — Inteligencia de inventario y compras para retail y logística</title>
+<meta name="description" content="Convierte tu Excel de ventas en decisiones de compra, reposición y pronóstico de demanda en segundos. Para supermercados, distribuidoras, almacenes y operadores logísticos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FBFAF7;
+  --bg-soft:#F4F2EC;
+  --surface:#FFFFFF;
+  --ink:#16171C;
+  --ink-2:#3A3D47;
+  --muted:#6A6E7A;
+  --line:#E9E6DE;
+  --line-2:#DEDACF;
+  --brand:#0C6E54;
+  --brand-2:#0FA47B;
+  --brand-soft:#E7F3EE;
+  --amber:#C77A12;
+  --amber-soft:#FBF1DF;
+  --red:#C0392B;
+  --red-soft:#FBEAE7;
+  --blue:#2563A8;
+  --shadow-sm:0 1px 2px rgba(20,22,28,.04), 0 1px 3px rgba(20,22,28,.06);
+  --shadow:0 4px 14px rgba(20,22,28,.06), 0 2px 6px rgba(20,22,28,.05);
+  --shadow-lg:0 24px 60px -20px rgba(20,30,28,.28), 0 8px 24px -12px rgba(20,22,28,.12);
+  --r:14px;
+  --r-lg:20px;
+  --maxw:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Hanken Grotesk',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;line-height:1.08;letter-spacing:-.02em;color:var(--ink)}
+a{color:inherit;text-decoration:none}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:'Hanken Grotesk';font-weight:600;font-size:15px;
+  padding:12px 20px;border-radius:11px;border:1px solid transparent;cursor:pointer;transition:.18s ease;white-space:nowrap}
+.btn svg{width:17px;height:17px}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 1px 2px rgba(12,110,84,.4),0 6px 16px -8px rgba(12,110,84,.6)}
+.btn-primary:hover{background:#0a5d47;transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(12,110,84,.55)}
+.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line-2)}
+.btn-ghost:hover{border-color:#c9c4b6;background:#fff;transform:translateY(-1px)}
+.btn-lg{padding:15px 26px;font-size:16px;border-radius:13px}
+
+/* ---------- nav ---------- */
+header{position:sticky;top:0;z-index:50;background:rgba(251,250,247,.78);backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:.25s}
+header.scrolled{border-color:var(--line);background:rgba(251,250,247,.92)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+.logo{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:700;font-size:20px;letter-spacing:-.02em}
+.logo .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;box-shadow:0 4px 12px -4px rgba(12,110,84,.6)}
+.logo .mark svg{width:19px;height:19px;color:#fff}
+.logo small{font-family:'Hanken Grotesk';font-weight:500;font-size:11px;color:var(--muted);letter-spacing:.02em;display:block;line-height:1;margin-top:2px}
+.nav-links{display:flex;align-items:center;gap:34px}
+.nav-links a{font-size:15px;font-weight:500;color:var(--ink-2);transition:.15s}
+.nav-links a:hover{color:var(--brand)}
+.nav-cta{display:flex;align-items:center;gap:12px}
+.burger{display:none;background:none;border:none;cursor:pointer;padding:8px}
+.burger svg{width:24px;height:24px;color:var(--ink)}
+@media(max-width:860px){
+  .nav-links{display:none}
+  .nav-cta .btn-ghost{display:none}
+  .burger{display:block}
+}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:72px 0 90px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(900px 480px at 78% -8%, rgba(15,164,123,.10), transparent 60%),
+    radial-gradient(640px 420px at 6% 18%, rgba(199,122,18,.07), transparent 55%);
+  pointer-events:none}
+.hero .grid-bg{position:absolute;inset:0;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:46px 46px;
+  mask-image:radial-gradient(900px 500px at 60% 0%,#000,transparent 75%);
+  -webkit-mask-image:radial-gradient(900px 500px at 60% 0%,#000,transparent 75%)}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.02fr 1.1fr;gap:54px;align-items:center}
+@media(max-width:980px){.hero-grid{grid-template-columns:1fr;gap:44px}}
+.badge{display:inline-flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);
+  padding:7px 14px 7px 9px;border-radius:100px;font-size:13.5px;font-weight:600;color:var(--ink-2);box-shadow:var(--shadow-sm)}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--brand-2);box-shadow:0 0 0 4px rgba(15,164,123,.18)}
+.hero h1{font-size:clamp(38px,5.4vw,62px);margin:22px 0 0;font-weight:800}
+.hero h1 .hl{position:relative;color:var(--brand);white-space:nowrap}
+.hero h1 .hl::after{content:"";position:absolute;left:-2px;right:-2px;bottom:6px;height:14px;background:rgba(15,164,123,.18);z-index:-1;border-radius:3px}
+.hero p.lead{font-size:clamp(17px,2vw,20px);color:var(--ink-2);margin:22px 0 0;max-width:540px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
+.hero-trust{display:flex;align-items:center;gap:18px;margin-top:30px;flex-wrap:wrap}
+.hero-trust .stars{display:flex;gap:2px;color:var(--amber)}
+.hero-trust .stars svg{width:16px;height:16px}
+.hero-trust span{font-size:13.5px;color:var(--muted)}
+.hero-trust .sep{width:1px;height:20px;background:var(--line-2)}
+
+/* ---------- dashboard mockup ---------- */
+.mock{position:relative;z-index:1}
+.mock .glow{position:absolute;inset:-30px -10px -20px;z-index:-1;
+  background:radial-gradient(closest-side,rgba(15,164,123,.16),transparent);filter:blur(10px)}
+.window{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.win-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(var(--bg-soft),#fff)}
+.win-bar .dots{display:flex;gap:6px}
+.win-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+.win-bar .dots i:nth-child(1){background:#E8857A}
+.win-bar .dots i:nth-child(2){background:#E7C66A}
+.win-bar .dots i:nth-child(3){background:#86C28C}
+.win-bar .addr{margin-left:8px;flex:1;background:var(--bg);border:1px solid var(--line);border-radius:7px;
+  font-size:12px;color:var(--muted);padding:5px 12px;font-family:'Hanken Grotesk'}
+.win-bar .addr b{color:var(--ink-2);font-weight:600}
+.win-body{display:grid;grid-template-columns:180px 1fr;min-height:430px}
+.win-side{border-right:1px solid var(--line);padding:16px 12px;background:#FCFCFB}
+.win-side .si{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-2);padding:8px 10px;border-radius:8px;font-weight:500;margin-bottom:2px}
+.win-side .si svg{width:15px;height:15px;color:var(--muted);flex:none}
+.win-side .si.on{background:var(--brand-soft);color:var(--brand);font-weight:600}
+.win-side .si.on svg{color:var(--brand)}
+.win-main{padding:18px}
+.win-main .mt{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.win-main .mt h4{font-size:15px}
+.win-main .mt .tag{font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:3px 9px;border-radius:6px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kpi{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fff}
+.kpi .l{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.kpi .v{font-size:20px;font-weight:800;font-family:'Bricolage Grotesque';margin-top:5px;letter-spacing:-.02em}
+.kpi .d{font-size:11px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:3px}
+.kpi .d.up{color:var(--brand)} .kpi .d.dn{color:var(--red)}
+.kpi .d svg{width:11px;height:11px}
+.panel{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fff}
+.panel .ph{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.panel .ph span{font-size:10.5px;color:var(--muted);font-weight:500}
+.bars{display:flex;align-items:flex-end;gap:9px;height:110px;padding-top:6px}
+.bars .b{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(var(--brand-2),var(--brand));opacity:.92;position:relative;transition:height 1s cubic-bezier(.2,.8,.2,1)}
+.bars .b.alt{background:linear-gradient(#cfe9df,#a9d8c6)}
+.bars .b::after{content:attr(data-m);position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:9px;color:var(--muted)}
+.donut-row{display:flex;align-items:center;gap:18px}
+.donut{width:96px;height:96px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--brand) 0 72%, var(--amber) 72% 89%, var(--line-2) 89% 100%);
+  display:grid;place-items:center;position:relative}
+.donut::before{content:"";position:absolute;width:60px;height:60px;border-radius:50%;background:#fff}
+.donut b{position:relative;font-family:'Bricolage Grotesque';font-size:17px;font-weight:800}
+.leg{display:flex;flex-direction:column;gap:8px;font-size:11.5px}
+.leg .li{display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+.leg .li i{width:9px;height:9px;border-radius:3px;display:block}
+.leg .li b{margin-left:auto;font-family:'Bricolage Grotesque';font-weight:700}
+.float-card{position:absolute;background:#fff;border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow-lg);padding:12px 14px;display:flex;align-items:center;gap:11px;z-index:3}
+.float-card .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+.float-card .ic svg{width:18px;height:18px}
+.float-card .t{font-size:10.5px;color:var(--muted);font-weight:600}
+.float-card .n{font-family:'Bricolage Grotesque';font-size:16px;font-weight:800;letter-spacing:-.02em}
+.fc-1{top:-26px;right:18px;animation:floaty 5s ease-in-out infinite}
+.fc-2{bottom:-24px;left:-22px;animation:floaty 6s ease-in-out infinite .6s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media(max-width:560px){.float-card{display:none}.win-body{grid-template-columns:1fr}.win-side{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- logos strip ---------- */
+.strip{padding:34px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}
+.strip p{text-align:center;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.04em;margin-bottom:20px}
+.strip-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:18px 38px;opacity:.85}
+.strip-row .seg{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;color:var(--ink-2)}
+.strip-row .seg svg{width:22px;height:22px;color:var(--muted)}
+
+/* ---------- sections ---------- */
+section.block{padding:96px 0}
+.sec-head{max-width:680px;margin:0 auto 56px;text-align:center}
+.sec-head h2{font-size:clamp(30px,4vw,44px);margin-top:14px;font-weight:800}
+.sec-head p{font-size:18px;color:var(--ink-2);margin-top:16px}
+
+/* problem -> stats */
+.problem{background:var(--bg-soft)}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:780px){.pstats{grid-template-columns:1fr}}
+.pstat{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:30px 28px;box-shadow:var(--shadow-sm)}
+.pstat .big{font-family:'Bricolage Grotesque';font-size:46px;font-weight:800;letter-spacing:-.03em;color:var(--brand);line-height:1}
+.pstat h4{font-size:18px;margin:14px 0 8px}
+.pstat p{font-size:15px;color:var(--muted)}
+
+/* features */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+@media(max-width:960px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.feat-grid{grid-template-columns:1fr}}
+.feat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:28px;transition:.2s;position:relative;overflow:hidden}
+.feat:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--line-2)}
+.feat .fi{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;margin-bottom:18px}
+.feat .fi svg{width:24px;height:24px}
+.feat h3{font-size:20px;margin-bottom:9px}
+.feat p{font-size:15px;color:var(--muted)}
+.fi-green{background:var(--brand-soft);color:var(--brand)}
+.fi-amber{background:var(--amber-soft);color:var(--amber)}
+.fi-red{background:var(--red-soft);color:var(--red)}
+.fi-blue{background:#E6EEF7;color:var(--blue)}
+
+/* how it works */
+.how{background:linear-gradient(180deg,#fff,var(--bg-soft))}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;counter-reset:step}
+@media(max-width:820px){.steps{grid-template-columns:1fr}}
+.step{position:relative;padding:30px 26px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-sm)}
+.step .num{counter-increment:step;font-family:'Bricolage Grotesque';font-weight:800;font-size:15px;width:40px;height:40px;
+  border-radius:11px;background:var(--brand);color:#fff;display:grid;place-items:center;margin-bottom:18px}
+.step .num::before{content:"0" counter(step)}
+.step h3{font-size:19px;margin-bottom:9px}
+.step p{font-size:15px;color:var(--muted)}
+.step .arrow{position:absolute;top:48px;right:-26px;color:var(--line-2);z-index:2}
+.step .arrow svg{width:34px;height:34px}
+@media(max-width:820px){.step .arrow{display:none}}
+
+/* split feature */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+@media(max-width:900px){.split{grid-template-columns:1fr;gap:36px}}
+.split ul{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:16px}
+.split ul li{display:flex;gap:13px;font-size:16px;color:var(--ink-2)}
+.split ul li .ck{width:24px;height:24px;border-radius:7px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none;margin-top:2px}
+.split ul li .ck svg{width:14px;height:14px}
+.split ul li b{color:var(--ink)}
+.split-visual{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.dgrid-head,.dgrid-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .8fr;gap:4px;padding:11px 16px;align-items:center}
+.dgrid-head{background:var(--bg-soft);border-bottom:1px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.dgrid-row{border-bottom:1px solid var(--line);font-size:13.5px}
+.dgrid-row:last-child{border-bottom:none}
+.dgrid-row .nm{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dgrid-row .cl{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;display:inline-block;width:fit-content}
+.cl.a{background:var(--brand-soft);color:var(--brand)}
+.cl.b{background:var(--amber-soft);color:var(--amber)}
+.cl.c{background:var(--bg-soft);color:var(--muted)}
+.tag-act{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;width:fit-content}
+.tag-act.urg{background:var(--red-soft);color:var(--red)}
+.tag-act.ok{background:var(--brand-soft);color:var(--brand)}
+.split-visual .vh{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;display:flex;align-items:center;gap:9px}
+.split-visual .vh svg{width:17px;height:17px;color:var(--brand)}
+
+/* pricing */
+.pricing{background:var(--bg-soft)}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+@media(max-width:900px){.price-grid{grid-template-columns:1fr;max-width:440px;margin:0 auto}}
+.plan{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--shadow-sm);position:relative}
+.plan.feat-plan{border:2px solid var(--brand);box-shadow:var(--shadow-lg);transform:scale(1.02)}
+@media(max-width:900px){.plan.feat-plan{transform:none}}
+.plan .pop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:100px;letter-spacing:.02em}
+.plan h3{font-size:20px}
+.plan .pdesc{font-size:14px;color:var(--muted);margin:6px 0 18px;min-height:40px}
+.plan .price{display:flex;align-items:baseline;gap:5px;margin-bottom:4px}
+.plan .price .cur{font-size:20px;font-weight:700;font-family:'Bricolage Grotesque'}
+.plan .price .amt{font-size:46px;font-weight:800;font-family:'Bricolage Grotesque';letter-spacing:-.03em;line-height:1}
+.plan .price .per{font-size:14px;color:var(--muted);font-weight:500}
+.plan .pnote{font-size:12.5px;color:var(--muted);margin-bottom:22px}
+.plan ul{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:26px;flex:1}
+.plan ul li{display:flex;gap:10px;font-size:14.5px;color:var(--ink-2)}
+.plan ul li svg{width:18px;height:18px;color:var(--brand);flex:none;margin-top:2px}
+.plan ul li.off{color:#B4B0A6}
+.plan ul li.off svg{color:#CFCABB}
+.plan .btn{width:100%;justify-content:center}
+
+/* testimonial */
+.quote-wrap{max-width:820px;margin:0 auto;text-align:center}
+.quote-wrap .qmark{font-family:'Bricolage Grotesque';font-size:80px;color:var(--brand);line-height:.6;opacity:.25}
+.quote-wrap blockquote{font-family:'Bricolage Grotesque';font-size:clamp(22px,3vw,30px);font-weight:600;line-height:1.34;letter-spacing:-.02em;margin:10px 0 28px}
+.quote-author{display:flex;align-items:center;justify-content:center;gap:14px}
+.quote-author .av{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:#fff;font-family:'Bricolage Grotesque';font-weight:700;font-size:18px}
+.quote-author .who{text-align:left}
+.quote-author .who b{display:block;font-size:15px}
+.quote-author .who span{font-size:13.5px;color:var(--muted)}
+
+/* faq */
+.faq-list{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.faq{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:.2s}
+.faq summary{padding:20px 24px;font-weight:600;font-size:16.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .pm{width:24px;height:24px;flex:none;position:relative;transition:.25s}
+.faq summary .pm::before,.faq summary .pm::after{content:"";position:absolute;background:var(--brand);border-radius:2px}
+.faq summary .pm::before{top:11px;left:4px;right:4px;height:2px}
+.faq summary .pm::after{left:11px;top:4px;bottom:4px;width:2px;transition:.25s}
+.faq[open] summary .pm::after{transform:rotate(90deg);opacity:0}
+.faq[open]{border-color:var(--line-2);box-shadow:var(--shadow-sm)}
+.faq .fa{padding:0 24px 22px;color:var(--muted);font-size:15.5px}
+
+/* final cta */
+.cta-final{position:relative;overflow:hidden;background:linear-gradient(135deg,#0a5d47,#0C6E54 55%,#0FA47B);color:#fff;padding:80px 0}
+.cta-final::before{content:"";position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:radial-gradient(700px 360px at 80% 20%,#000,transparent 70%);
+  -webkit-mask-image:radial-gradient(700px 360px at 80% 20%,#000,transparent 70%)}
+.cta-final .wrap{position:relative;text-align:center}
+.cta-final h2{color:#fff;font-size:clamp(30px,4.4vw,46px);font-weight:800}
+.cta-final p{font-size:18px;opacity:.92;max-width:560px;margin:18px auto 32px}
+.cta-final .btn-primary{background:#fff;color:var(--brand);box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
+.cta-final .btn-primary:hover{background:#f3fbf8}
+.cta-final .btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.cta-final .btn-ghost:hover{background:rgba(255,255,255,.1);border-color:#fff}
+.cta-mini{margin-top:20px;font-size:13.5px;opacity:.8}
+
+/* footer */
+footer{background:var(--ink);color:#C9CBD2;padding:60px 0 30px}
+.foot-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:36px;padding-bottom:40px;border-bottom:1px solid rgba(255,255,255,.1)}
+@media(max-width:780px){.foot-top{grid-template-columns:1fr 1fr;gap:30px}}
+.foot-brand .logo{color:#fff;margin-bottom:14px}
+.foot-brand .logo small{color:#8B8E98}
+.foot-brand p{font-size:14px;color:#8B8E98;max-width:280px}
+.foot-col h5{color:#fff;font-family:'Hanken Grotesk';font-weight:700;font-size:14px;margin-bottom:16px;letter-spacing:.02em}
+.foot-col a{display:block;font-size:14px;color:#9A9DA6;margin-bottom:10px;transition:.15s}
+.foot-col a:hover{color:#fff}
+.foot-bot{display:flex;justify-content:space-between;align-items:center;padding-top:24px;font-size:13px;color:#7C7F89;flex-wrap:wrap;gap:12px}
+
+/* mobile menu */
+.mmenu{position:fixed;inset:0;z-index:60;background:var(--bg);transform:translateY(-100%);transition:.3s;display:flex;flex-direction:column;padding:24px}
+.mmenu.open{transform:translateY(0)}
+.mmenu .mtop{display:flex;justify-content:space-between;align-items:center;height:46px;margin-bottom:24px}
+.mmenu .mclose{background:none;border:none;cursor:pointer}
+.mmenu .mclose svg{width:26px;height:26px}
+.mmenu a{font-family:'Bricolage Grotesque';font-weight:600;font-size:24px;padding:16px 0;border-bottom:1px solid var(--line)}
+.mmenu .btn{margin-top:auto;justify-content:center}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(24px);transition:.7s cubic-bezier(.16,.8,.3,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ---------- demo modal ---------- */
+.overlay{position:fixed;inset:0;z-index:80;background:rgba(20,22,28,.5);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:20px;opacity:0;transition:.2s}
+.overlay.open{display:flex;opacity:1}
+.modal{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:480px;box-shadow:var(--shadow-lg);
+  border:1px solid var(--line);overflow:hidden;transform:translateY(14px) scale(.98);transition:.25s cubic-bezier(.16,.8,.3,1)}
+.overlay.open .modal{transform:none}
+.modal-head{padding:24px 26px 0;position:relative}
+.modal-head .mclose-x{position:absolute;top:18px;right:18px;background:var(--bg-soft);border:none;width:32px;height:32px;
+  border-radius:8px;cursor:pointer;display:grid;place-items:center;color:var(--muted);transition:.15s}
+.modal-head .mclose-x:hover{background:var(--line);color:var(--ink)}
+.modal-head .mclose-x svg{width:17px;height:17px}
+.modal-head h3{font-size:23px}
+.modal-head p{font-size:14.5px;color:var(--muted);margin-top:8px}
+.modal-body{padding:20px 26px 26px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.field input,.field textarea{width:100%;font-family:'Hanken Grotesk';font-size:15px;color:var(--ink);
+  padding:11px 13px;border:1px solid var(--line-2);border-radius:10px;background:#fff;transition:.15s;resize:vertical}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:440px){.field-row{grid-template-columns:1fr}}
+.modal .btn{width:100%;justify-content:center;margin-top:6px}
+.modal-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px}
+.form-ok{text-align:center;padding:18px 0 6px}
+.form-ok .ok-ic{width:62px;height:62px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center;margin:0 auto 16px}
+.form-ok .ok-ic svg{width:30px;height:30px}
+.form-ok h3{font-size:22px;margin-bottom:8px}
+.form-ok p{font-size:15px;color:var(--muted)}
+.btn.loading{opacity:.7;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- mobile menu -->
+<div class="mmenu" id="mmenu">
+  <div class="mtop">
+    <div class="logo"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></div>TractorPlan</div>
+    <button class="mclose" onclick="toggleMenu(false)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <a href="#producto" onclick="toggleMenu(false)">Producto</a>
+  <a href="#como" onclick="toggleMenu(false)">Cómo funciona</a>
+  <a href="#precios" onclick="toggleMenu(false)">Precios</a>
+  <a href="#faq" onclick="toggleMenu(false)">Preguntas</a>
+  <a class="btn btn-primary" href="#demo" onclick="toggleMenu(false)">Solicitar demo</a>
+</div>
+
+<!-- header -->
+<header id="header">
+  <div class="wrap nav">
+    <a href="#" class="logo">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></div>
+      <div>TractorPlan<small>Supply Chain Intelligence</small></div>
+    </a>
+    <nav class="nav-links">
+      <a href="#producto">Producto</a>
+      <a href="#como">Cómo funciona</a>
+      <a href="#precios">Precios</a>
+      <a href="#faq">Preguntas</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#demo" class="btn btn-ghost">Iniciar sesión</a>
+      <a href="#demo" class="btn btn-primary">Solicitar demo</a>
+      <button class="burger" onclick="toggleMenu(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<!-- hero -->
+<section class="hero">
+  <div class="grid-bg"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="badge"><span class="dot"></span>Tus ventas en Excel, convertidas en decisiones</span>
+      <h1>Compra lo correcto.<br>Deja de <span class="hl">inmovilizar capital</span>.</h1>
+      <p class="lead">TractorPlan analiza tu historial de ventas e inventario y te dice exactamente qué reponer, qué importar y qué liquidar — clasificación ABC, plan de compras y pronóstico de demanda en segundos.</p>
+      <div class="hero-actions">
+        <a href="#demo" class="btn btn-primary btn-lg">Solicitar demo gratuita
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="#como" class="btn btn-ghost btn-lg">Ver cómo funciona</a>
+      </div>
+      <div class="hero-trust">
+        <div class="stars">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+        </div>
+        <span>Pensado para equipos de compras y logística</span>
+        <div class="sep"></div>
+        <span>Funciona con tu Excel actual · Sin instalar nada</span>
+      </div>
+    </div>
+
+    <!-- dashboard mockup -->
+    <div class="mock">
+      <div class="glow"></div>
+      <div class="window">
+        <div class="win-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="addr"><b>app.tractorplan.com</b> / dashboard</div>
+        </div>
+        <div class="win-body">
+          <aside class="win-side">
+            <div class="si on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Familias</div>
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Artículos</div>
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h2l2.6 13.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6"/></svg>Compras OC</div>
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>Pronóstico</div>
+            <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a1 1 0 0 0 .9 1.5h18.6a1 1 0 0 0 .9-1.5L13.7 3.9a1 1 0 0 0-1.7 0z"/><path d="M12 9v4M12 17h.01"/></svg>Sin movimiento</div>
+          </aside>
+          <main class="win-main">
+            <div class="mt"><h4>Resumen general</h4><span class="tag">Últimos 6 meses</span></div>
+            <div class="kpis">
+              <div class="kpi"><div class="l">Ingresos</div><div class="v tnum">$2.4M</div><div class="d up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 14l5-5 5 5"/></svg>+12.4%</div></div>
+              <div class="kpi"><div class="l">Clase A</div><div class="v tnum">186</div><div class="d up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 14l5-5 5 5"/></svg>80% ingresos</div></div>
+              <div class="kpi"><div class="l">Reponer ya</div><div class="v tnum" style="color:var(--red)">23</div><div class="d dn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg>urgente</div></div>
+            </div>
+            <div class="panel" style="margin-bottom:12px">
+              <div class="ph">Ingresos por mes <span>USD</span></div>
+              <div class="bars" id="bars">
+                <div class="b" data-h="48" data-m="Ene"></div>
+                <div class="b" data-h="62" data-m="Feb"></div>
+                <div class="b" data-h="55" data-m="Mar"></div>
+                <div class="b" data-h="78" data-m="Abr"></div>
+                <div class="b" data-h="70" data-m="May"></div>
+                <div class="b" data-h="100" data-m="Jun"></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ph">Clasificación ABC</div>
+              <div class="donut-row">
+                <div class="donut"><b>ABC</b></div>
+                <div class="leg">
+                  <div class="li"><i style="background:var(--brand)"></i>Clase A · 80% ingresos <b>186</b></div>
+                  <div class="li"><i style="background:var(--amber)"></i>Clase B · 15% ingresos <b>312</b></div>
+                  <div class="li"><i style="background:var(--line-2)"></i>Clase C · 5% ingresos <b>1.4K</b></div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+      <div class="float-card fc-1">
+        <div class="ic" style="background:var(--red-soft);color:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a1 1 0 0 0 .9 1.5h18.6a1 1 0 0 0 .9-1.5L13.7 3.9a1 1 0 0 0-1.7 0z"/></svg></div>
+        <div><div class="t">Quiebres evitados</div><div class="n tnum">−38%</div></div>
+      </div>
+      <div class="float-card fc-2">
+        <div class="ic" style="background:var(--brand-soft);color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div><div class="t">Capital liberado</div><div class="n tnum">$184K</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- strip -->
+<div class="strip">
+  <div class="wrap">
+    <p>DISEÑADO PARA EQUIPOS DE INVENTARIO EN</p>
+    <div class="strip-row">
+      <div class="seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l1-5h16l1 5M3 9v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9M3 9h18M8 13h8"/></svg>Supermercados</div>
+      <div class="seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-6h6v6M7 11h.01M17 11h.01"/></svg>Distribuidoras</div>
+      <div class="seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="12" rx="1"/><path d="M3 8l3-4h12l3 4M8 12h8M8 16h8"/></svg>Almacenes</div>
+      <div class="seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 7h13v9H1zM14 9h4l3 3v4h-7M5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>Operadores logísticos</div>
+      <div class="seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2 3 6v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>Retail e importadores</div>
+    </div>
+  </div>
+</div>
+
+<!-- problem / stats -->
+<section class="block problem rv">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">El problema</span>
+      <h2>El stock mal gestionado se come tu rentabilidad</h2>
+      <p>La mayoría de empresas deciden sus compras "a ojo" o con un Excel desordenado. El resultado: dinero atrapado en productos que no rotan y quiebres en los que sí venden.</p>
+    </div>
+    <div class="pstats">
+      <div class="pstat">
+        <div class="big tnum">20–30%</div>
+        <h4>Capital inmovilizado</h4>
+        <p>del valor del inventario suele estar en productos de baja o nula rotación que nadie revisa.</p>
+      </div>
+      <div class="pstat">
+        <div class="big tnum">1 de 3</div>
+        <h4>Ventas perdidas</h4>
+        <p>clientes que no encuentran el producto que buscan se van con la competencia. El quiebre cuesta más que el sobrestock.</p>
+      </div>
+      <div class="pstat">
+        <div class="big tnum">+8h</div>
+        <h4>Por cada cierre</h4>
+        <p>que un analista pierde armando reportes de compra a mano, en vez de decidir y negociar con proveedores.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- features -->
+<section class="block" id="producto">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">La plataforma</span>
+      <h2>Todo tu ciclo de inventario, en un solo lugar</h2>
+      <p>Carga tu base de ventas e inventario y TractorPlan hace el análisis pesado por ti. Cada módulo responde una pregunta concreta del negocio.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat rv">
+        <div class="fi fi-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
+        <h3>Clasificación ABC</h3>
+        <p>Identifica automáticamente qué productos generan el 80% de tus ingresos para que enfoques tu capital y atención donde de verdad importa.</p>
+      </div>
+      <div class="feat rv">
+        <div class="fi fi-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h2l2.6 13.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6"/></svg></div>
+        <h3>Plan de compras y OC</h3>
+        <p>Calcula el stock recomendado por cobertura y el monto de cada orden de compra. Sabes cuánto comprar y cuánto vas a invertir antes de llamar al proveedor.</p>
+      </div>
+      <div class="feat rv">
+        <div class="fi fi-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h13v9H2zM15 9h4l3 3v4h-7M5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg></div>
+        <h3>Importaciones urgentes</h3>
+        <p>Detecta los productos con demanda en explosión (+200%, +500%, +1000%) para que importes a tiempo y no te quedes corto en lo que más crece.</p>
+      </div>
+      <div class="feat rv">
+        <div class="fi fi-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Sin movimiento +90d</h3>
+        <p>Saca a la luz el inventario parado y te dice qué revisar, qué liquidar y qué monitorear. Recupera el capital atrapado en estantes.</p>
+      </div>
+      <div class="feat rv">
+        <div class="fi fi-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></div>
+        <h3>Pronóstico de demanda</h3>
+        <p>Proyecta ventas, inventario y plan de pedidos a futuro por semana. Planifica con datos, no con corazonadas.</p>
+      </div>
+      <div class="feat rv">
+        <div class="fi fi-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+        <h3>Exportación a Excel</h3>
+        <p>Descarga cada análisis en Excel con código, nombre, familia y marca listos para pasar a tu ERP o compartir con el equipo de compras.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- how it works -->
+<section class="block how" id="como">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Cómo funciona</span>
+      <h2>De tu Excel a un plan de acción en 3 pasos</h2>
+      <p>Sin migraciones, sin proyectos de meses. Empiezas con la base de datos que ya tienes hoy.</p>
+    </div>
+    <div class="steps">
+      <div class="step rv">
+        <div class="num"></div>
+        <h3>Carga tu base</h3>
+        <p>Sube tu archivo de ventas e inventario en Excel o CSV — sin límite de filas. TractorPlan reconoce y ordena la información por ti.</p>
+        <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="step rv">
+        <div class="num"></div>
+        <h3>Análisis automático</h3>
+        <p>En segundos obtienes clasificación ABC, alertas de reposición, productos sin rotación y pronósticos — todo calculado y visualizado.</p>
+        <div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="step rv">
+        <div class="num"></div>
+        <h3>Decide y exporta</h3>
+        <p>Filtra por familia o marca, genera tu plan de compras y descárgalo en Excel listo para ejecutar con tus proveedores.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- split feature -->
+<section class="block">
+  <div class="wrap split">
+    <div class="rv">
+      <span class="eyebrow">Decisiones de compra</span>
+      <h2 style="font-size:clamp(28px,3.6vw,40px);margin-top:14px">Sabes qué reponer antes de que se agote</h2>
+      <p style="font-size:17px;color:var(--ink-2);margin-top:18px">Cada artículo se evalúa por su velocidad de venta, su clase ABC y su tendencia. TractorPlan prioriza la acción para que tu equipo de compras trabaje sobre lo urgente, no sobre lo ruidoso.</p>
+      <ul>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg></span><div><b>Reposición priorizada</b> — primero los A y B que están por quebrar.</div></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg></span><div><b>Monto de OC calculado</b> — stock recomendado × precio, listo para presupuestar.</div></li>
+        <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg></span><div><b>Tendencia visible</b> — ves si un producto está creciendo o cayendo de un vistazo.</div></li>
+      </ul>
+    </div>
+    <div class="split-visual rv">
+      <div class="vh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h2l2.6 13.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6"/></svg>Plan de reposición · Top urgentes</div>
+      <div class="dgrid-head"><div>Producto</div><div>Clase</div><div>Prom/mes</div><div>Acción</div></div>
+      <div class="dgrid-row"><div class="nm">Filtro aceite XR-200</div><div><span class="cl a">A</span></div><div class="tnum">142</div><div><span class="tag-act urg">Reponer</span></div></div>
+      <div class="dgrid-row"><div class="nm">Correa transmisión 4P</div><div><span class="cl a">A</span></div><div class="tnum">98</div><div><span class="tag-act urg">Reponer</span></div></div>
+      <div class="dgrid-row"><div class="nm">Bujía estándar B7</div><div><span class="cl b">B</span></div><div class="tnum">76</div><div><span class="tag-act urg">Reponer</span></div></div>
+      <div class="dgrid-row"><div class="nm">Aceite hidráulico 20L</div><div><span class="cl a">A</span></div><div class="tnum">54</div><div><span class="tag-act ok">OK</span></div></div>
+      <div class="dgrid-row"><div class="nm">Empaque culata serie 9</div><div><span class="cl b">B</span></div><div class="tnum">31</div><div><span class="tag-act ok">OK</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- testimonial -->
+<section class="block problem rv">
+  <div class="wrap quote-wrap">
+    <div class="qmark">"</div>
+    <blockquote>Pasamos de revisar el inventario una vez al mes a tener un plan de compras claro cada semana. Dejamos de comprar lo que no rotaba y los quiebres en productos clase A casi desaparecieron.</blockquote>
+    <div class="quote-author">
+      <div class="av">JM</div>
+      <div class="who"><b>Jefe de Compras</b><span>Distribuidora · sector repuestos</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- pricing -->
+<section class="block pricing" id="precios">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Planes</span>
+      <h2>Precios simples, retorno claro</h2>
+      <p>Empieza en minutos. Escala cuando lo necesites. Todos los planes incluyen el motor de análisis completo.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan rv">
+        <h3>Starter</h3>
+        <p class="pdesc">Para un negocio o sucursal que quiere ordenar sus compras.</p>
+        <div class="price"><span class="cur">$</span><span class="amt">49</span><span class="per">/mes</span></div>
+        <p class="pnote">Facturado mensual · cancela cuando quieras</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>1 usuario</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Clasificación ABC y dashboard</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Plan de compras y exportación Excel</li>
+          <li class="off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6 6 18"/></svg>Pronóstico de demanda</li>
+          <li class="off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6 6 18"/></svg>Soporte prioritario</li>
+        </ul>
+        <a href="#demo" class="btn btn-ghost">Empezar</a>
+      </div>
+      <div class="plan feat-plan rv">
+        <div class="pop">Más elegido</div>
+        <h3>Profesional</h3>
+        <p class="pdesc">Para equipos de compras y logística que planifican en serio.</p>
+        <div class="price"><span class="cur">$</span><span class="amt">149</span><span class="per">/mes</span></div>
+        <p class="pnote">Facturado mensual · cancela cuando quieras</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Hasta 5 usuarios</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Todo lo de Starter</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Pronóstico de demanda</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Importaciones urgentes y sin movimiento</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Soporte prioritario</li>
+        </ul>
+        <a href="#demo" class="btn btn-primary">Solicitar demo</a>
+      </div>
+      <div class="plan rv">
+        <h3>Empresarial</h3>
+        <p class="pdesc">Para cadenas, multi-almacén y operadores logísticos.</p>
+        <div class="price"><span class="amt" style="font-size:34px">A medida</span></div>
+        <p class="pnote">Según volumen, sucursales e integraciones</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Usuarios ilimitados</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Multi-almacén y multi-sucursal</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Integración con tu ERP</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Onboarding y capacitación</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg>Gerente de cuenta dedicado</li>
+        </ul>
+        <a href="#demo" class="btn btn-ghost">Hablar con ventas</a>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:13.5px;margin-top:26px">Precios referenciales editables · puedes ajustarlos a tu moneda y mercado.</p>
+  </div>
+</section>
+
+<!-- faq -->
+<section class="block" id="faq">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2>Lo que suelen preguntarnos</h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq rv"><summary>¿Tengo que cambiar mi sistema actual?<span class="pm"></span></summary><div class="fa">No. TractorPlan trabaja sobre el Excel o CSV que ya exportas de tu ERP o punto de venta. No reemplaza tu sistema, lo potencia con análisis que hoy no tienes.</div></details>
+      <details class="faq rv"><summary>¿Qué necesita mi archivo para funcionar?<span class="pm"></span></summary><div class="fa">Básicamente código de producto, nombre, familia/marca, precio y el historial de ventas por periodo. En el onboarding te ayudamos a dejar tu plantilla lista una sola vez.</div></details>
+      <details class="faq rv"><summary>¿Sirve para supermercados y multi-almacén?<span class="pm"></span></summary><div class="fa">Sí. El plan Empresarial está pensado para cadenas con varias sucursales o almacenes, con consolidación de datos e integración a tu ERP.</div></details>
+      <details class="faq rv"><summary>¿Mis datos están seguros?<span class="pm"></span></summary><div class="fa">Tu base se procesa de forma privada y no se comparte. En planes empresariales ofrecemos opciones de despliegue y acuerdos de confidencialidad según tu política interna.</div></details>
+      <details class="faq rv"><summary>¿Cuánto tardo en ver resultados?<span class="pm"></span></summary><div class="fa">Desde la primera carga. En segundos obtienes tu clasificación ABC y tus alertas de reposición. La mayoría de equipos ajusta su primera orden de compra el mismo día.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- final cta -->
+<section class="cta-final" id="demo">
+  <div class="wrap">
+    <h2>Convierte tu inventario en una ventaja, no en un costo</h2>
+    <p>Agenda una demo de 20 minutos con tu propia base de datos y mira exactamente cuánto capital podrías liberar.</p>
+    <div class="hero-actions" style="justify-content:center">
+      <a href="#demo" class="btn btn-primary btn-lg">Solicitar demo gratuita
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a href="https://tractorplan.vercel.app" class="btn btn-ghost btn-lg">Probar la app</a>
+    </div>
+    <p class="cta-mini">Sin tarjeta · Demo con tus datos · Respuesta en 24h</p>
+  </div>
+</section>
+
+<!-- footer -->
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <div class="logo">
+          <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></div>
+          <div>TractorPlan<small>Supply Chain Intelligence</small></div>
+        </div>
+        <p>Inteligencia de inventario y compras para retail, distribución y logística. Decide con datos.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Producto</h5>
+        <a href="#producto">Funcionalidades</a>
+        <a href="#como">Cómo funciona</a>
+        <a href="#precios">Precios</a>
+        <a href="https://tractorplan.vercel.app">Probar la app</a>
+      </div>
+      <div class="foot-col">
+        <h5>Soluciones</h5>
+        <a href="#">Supermercados</a>
+        <a href="#">Distribuidoras</a>
+        <a href="#">Almacenes</a>
+        <a href="#">Operadores logísticos</a>
+      </div>
+      <div class="foot-col">
+        <h5>Contacto</h5>
+        <a href="mailto:ventas@tractorplan.com">ventas@tractorplan.com</a>
+        <a href="#demo">Solicitar demo</a>
+        <a href="#faq">Preguntas frecuentes</a>
+      </div>
+    </div>
+    <div class="foot-bot">
+      <span>© 2026 TractorPlan. Todos los derechos reservados.</span>
+      <span>Hecho para equipos que deciden con datos.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- demo request modal -->
+<div class="overlay" id="demoOverlay" onclick="if(event.target===this)closeDemo()">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <button class="mclose-x" onclick="closeDemo()" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3>Solicita tu demo</h3>
+      <p>Déjanos tus datos y te contactamos en menos de 24 horas para mostrarte TractorPlan con tu propia base.</p>
+    </div>
+    <div class="modal-body">
+      <form id="demoForm">
+        <!-- ▼▼▼ PEGA AQUÍ TU ACCESS KEY GRATUITA DE web3forms.com ▼▼▼ -->
+        <input type="hidden" name="access_key" value="TU_ACCESS_KEY_WEB3FORMS">
+        <input type="hidden" name="subject" value="Nueva solicitud de demo — TractorPlan">
+        <input type="hidden" name="from_name" value="Landing TractorPlan">
+        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
+        <div class="field">
+          <label>Nombre y apellido</label>
+          <input type="text" name="nombre" required placeholder="Ej. Juan Pérez">
+        </div>
+        <div class="field">
+          <label>Empresa</label>
+          <input type="text" name="empresa" required placeholder="Nombre de tu empresa">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Correo</label>
+            <input type="email" name="email" required placeholder="tu@empresa.com">
+          </div>
+          <div class="field">
+            <label>WhatsApp</label>
+            <input type="tel" name="whatsapp" required placeholder="+51 999 999 999">
+          </div>
+        </div>
+        <div class="field">
+          <label>¿Qué te gustaría resolver? <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+          <textarea name="mensaje" rows="2" placeholder="Ej. Tenemos mucho stock parado y quiebres en lo que más vende."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" id="demoSubmit">Enviar solicitud
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="modal-note">No compartimos tus datos. Te escribimos solo para coordinar la demo.</p>
+      </form>
+
+      <div class="form-ok" id="demoOk" style="display:none">
+        <div class="ok-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-11"/></svg></div>
+        <h3>¡Solicitud enviada!</h3>
+        <p>Gracias. Te contactaremos muy pronto para coordinar tu demo personalizada.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// header scroll state
+const header=document.getElementById('header');
+addEventListener('scroll',()=>header.classList.toggle('scrolled',scrollY>10));
+
+// mobile menu
+const mmenu=document.getElementById('mmenu');
+function toggleMenu(open){mmenu.classList.toggle('open',open);document.body.style.overflow=open?'hidden':''}
+
+// reveal on scroll
+const io=new IntersectionObserver((es)=>{
+  es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('in'),(i%4)*70);io.unobserve(e.target)}})
+},{threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+// animate hero bars when visible
+const barsWrap=document.getElementById('bars');
+const bio=new IntersectionObserver((es)=>{
+  es.forEach(e=>{if(e.isIntersecting){
+    e.target.querySelectorAll('.b').forEach((b,i)=>{
+      b.style.height='0%';
+      setTimeout(()=>{b.style.height=b.dataset.h+'%'},120+i*90);
+    });
+    bio.unobserve(e.target);
+  }})
+},{threshold:.4});
+if(barsWrap)bio.observe(barsWrap);
+
+// ---- demo modal ----
+const demoOverlay=document.getElementById('demoOverlay');
+function openDemo(){demoOverlay.classList.add('open');document.body.style.overflow='hidden';toggleMenu(false)}
+function closeDemo(){demoOverlay.classList.remove('open');document.body.style.overflow=''}
+addEventListener('keydown',e=>{if(e.key==='Escape')closeDemo()});
+
+// any link/button pointing to #demo opens the modal
+document.querySelectorAll('a[href="#demo"]').forEach(a=>{
+  a.addEventListener('click',e=>{e.preventDefault();openDemo()});
+});
+
+// submit handler (Web3Forms — no backend needed)
+const demoForm=document.getElementById('demoForm');
+demoForm.addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const btn=document.getElementById('demoSubmit');
+  const data=new FormData(demoForm);
+  const key=data.get('access_key');
+
+  // Si aún no pegaste tu Access Key, avisa en consola y simula éxito para pruebas visuales
+  if(!key||key==='TU_ACCESS_KEY_WEB3FORMS'){
+    console.warn('⚠ Falta tu Access Key de web3forms.com. El formulario no enviará correos hasta que la pegues.');
+    document.getElementById('demoOk').style.display='block';
+    demoForm.style.display='none';
+    return;
+  }
+
+  btn.classList.add('loading');btn.textContent='Enviando…';
+  try{
+    const res=await fetch('https://api.web3forms.com/submit',{
+      method:'POST',
+      headers:{'Accept':'application/json'},
+      body:data
+    });
+    const json=await res.json();
+    if(json.success){
+      document.getElementById('demoOk').style.display='block';
+      demoForm.style.display='none';
+    }else{
+      alert('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
+      btn.classList.remove('loading');btn.textContent='Enviar solicitud';
+    }
+  }catch(err){
+    alert('Hubo un error al enviar. Inténtalo de nuevo.');
+    btn.classList.remove('loading');btn.textContent='Enviar solicitud';
+  }
+});
+</script>
+</body>
+</html>
