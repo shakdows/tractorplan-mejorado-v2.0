@@ -774,7 +774,7 @@ footer{background:var(--ink);color:#C9CBD2;padding:60px 0 30px}
     <div class="modal-body">
       <form id="demoForm">
         <!-- ▼▼▼ PEGA AQUÍ TU ACCESS KEY GRATUITA DE web3forms.com ▼▼▼ -->
-        <input type="hidden" name="access_key" value="<input type="hidden" name="access_key" value="d48a34f3-b125-4d6e-9134-604c929dd1e1">">
+        <input type="hidden" name="access_key" value="d48a34f3-b125-4d6e-9134-604c929dd1e1">
         <input type="hidden" name="subject" value="Nueva solicitud de demo — TractorPlan">
         <input type="hidden" name="from_name" value="Landing TractorPlan">
         <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
@@ -863,7 +863,7 @@ demoForm.addEventListener('submit',async(e)=>{
   const key=data.get('access_key');
 
   // Si aún no pegaste tu Access Key, avisa en consola y simula éxito para pruebas visuales
-  if(!key||key==='<input type="hidden" name="access_key" value="d48a34f3-b125-4d6e-9134-604c929dd1e1">'){
+  if(!key||key==='TU_ACCESS_KEY_WEB3FORMS'){
     console.warn('⚠ Falta tu Access Key de web3forms.com. El formulario no enviará correos hasta que la pegues.');
     document.getElementById('demoOk').style.display='block';
     demoForm.style.display='none';
